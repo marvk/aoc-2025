@@ -19,16 +19,16 @@ impl Part<i64> for Part1 {
 
         for x in vec {
             for i in (1..=(x.len() / 2)).filter(|e| x.len() % e == 0) {
-                // println!();
-                // println!("{}", i);
-                // println!("{}", x);
                 let repeat = x.len() / i;
+
+                if repeat != 2 {
+                    continue;
+                }
 
                 let x1 = &x[0..i];
 
                 let string = (0..repeat).map(|_| x1).collect::<Vec<_>>().join("");
                 if string == x {
-                    println!("{}", string);
                     sum += x.parse::<i64>().unwrap();
                 }
             }
@@ -42,11 +42,34 @@ pub struct Part2;
 
 impl Part<i64> for Part2 {
     fn expect_test(&self) -> i64 {
-        todo!()
+        4174379265
     }
 
     fn solve(&self, input: &[String]) -> i64 {
-        todo!()
+        let vec = parse(input);
+
+        let mut sum = 0;
+
+        for x in vec {
+            for i in (1..=(x.len() / 2)).filter(|e| x.len() % e == 0) {
+                let repeat = x.len() / i;
+
+                if repeat < 2 {
+                    continue;
+                }
+
+                let x1 = &x[0..i];
+
+                let string = (0..repeat).map(|_| x1).collect::<Vec<_>>().join("");
+                if string == x {
+                    let i1 = x.parse::<i64>().unwrap();
+                    sum += i1;
+                    break;
+                }
+            }
+        }
+
+        sum
     }
 }
 
