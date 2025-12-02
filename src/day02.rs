@@ -13,28 +13,7 @@ impl Part<i64> for Part1 {
     }
 
     fn solve(&self, input: &[String]) -> i64 {
-        let vec = parse(input);
-
-        let mut sum = 0;
-
-        for x in vec {
-            for i in (1..=(x.len() / 2)).filter(|e| x.len() % e == 0) {
-                let repeat = x.len() / i;
-
-                if repeat != 2 {
-                    continue;
-                }
-
-                let x1 = &x[0..i];
-
-                let string = (0..repeat).map(|_| x1).collect::<Vec<_>>().join("");
-                if string == x {
-                    sum += x.parse::<i64>().unwrap();
-                }
-            }
-        }
-
-        sum
+        solve(parse(input), 2)
     }
 }
 
@@ -46,43 +25,48 @@ impl Part<i64> for Part2 {
     }
 
     fn solve(&self, input: &[String]) -> i64 {
-        let vec = parse(input);
-
-        let mut sum = 0;
-
-        for x in vec {
-            for i in (1..=(x.len() / 2)).filter(|e| x.len() % e == 0) {
-                let repeat = x.len() / i;
-
-                if repeat < 2 {
-                    continue;
-                }
-
-                let x1 = &x[0..i];
-
-                let string = (0..repeat).map(|_| x1).collect::<Vec<_>>().join("");
-                if string == x {
-                    let i1 = x.parse::<i64>().unwrap();
-                    sum += i1;
-                    break;
-                }
-            }
-        }
-
-        sum
+        solve(parse(input), usize::MAX)
     }
 }
 
-fn parse(input: &[String]) -> Vec<String> {
-    input[0]
-        .split(',')
-        .flat_map(|e| {
-            let vec = e
-                .split('-')
-                .map(|e| e.parse::<i64>().unwrap())
-                .collect::<Vec<_>>();
-            (vec[0]..=vec[1])
-        })
-        .map(|e| e.to_string())
-        .collect::<Vec<_>>()
+fn parse(input: &[String]) -> impl Iterator<Item = i64> {
+    input[0].split(',').flat_map(|e| {
+        let divider = e.find('-').unwrap();
+        let from = e[0..divider].parse::<i64>().unwrap();
+        let to = e[divider + 1..].parse::<i64>().unwrap();
+        from..=to
+    })
+}
+
+fn solve<I>(iter: I, max_repeats: usize) -> i64
+where
+    I: Iterator<Item = i64>,
+{
+    let mut sum = 0;
+
+    for num in iter {
+        let num_len = (num.checked_ilog10().unwrap_or(0) + 1) as usize;
+        'outer: for n_digits in (1..=(num_len / 2))
+            .filter(|e| num_len.is_multiple_of(*e))
+            .filter(|e| num_len / e <= max_repeats)
+        {
+            let divisor = 10_i64.pow(n_digits as u32);
+
+            let mut current = num;
+            let quotient = current % divisor;
+
+            while current != 0 {
+                if current % divisor != quotient {
+                    continue 'outer;
+                }
+
+                current /= divisor;
+            }
+
+            sum += num;
+            break;
+        }
+    }
+
+    sum
 }
