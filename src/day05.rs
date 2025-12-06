@@ -1,5 +1,6 @@
 use crate::harness::Day;
 use crate::harness::Part;
+use std::mem::swap;
 use std::ops::RangeInclusive;
 
 pub fn day05() -> Day<u64, u64> {
@@ -36,28 +37,21 @@ impl Part<u64> for Part2 {
     fn solve(&self, input: &[String]) -> u64 {
         let input = Input::from(input);
 
-        let ranges = vec![
-            RangeInclusive::new(5, 15),
-            RangeInclusive::new(1, 6),
-            RangeInclusive::new(8, 9),
-            RangeInclusive::new(14, 18),
-        ];
-
         let mut ranges = input.ranges.into_iter().map(Some).collect::<Vec<_>>();
 
+        let mut size_before = ranges.iter().filter(|e| e.is_some()).count();
+        let mut size = size_before;
         loop {
-            let mut size_before = ranges.iter().filter(|e| e.is_some()).count();
-
-            'outer: for i1 in 0..(ranges.len() - 1) {
+            for i1 in 0..(ranges.len() - 1) {
                 if ranges[i1].is_none() {
                     continue;
                 }
-                let r1 = ranges[i1].clone().unwrap();
                 for i2 in i1 + 1..ranges.len() {
                     if ranges[i2].is_none() {
                         continue;
                     }
-                    let r2 = ranges[i2].clone().unwrap();
+                    let r1 = ranges[i1].as_ref().unwrap();
+                    let r2 = ranges[i2].as_ref().unwrap();
 
                     let contains_start = r1.contains(r2.start());
                     let contains_end = r1.contains(r2.end());
@@ -66,51 +60,30 @@ impl Part<u64> for Part2 {
                     let contains_end_1 = r2.contains(r1.end());
 
                     if contains_start && contains_end {
-                        // println!("a");
-                        // println!("{:?}", r1);
-                        // println!("{:?}", r2);
-                        // println!("-> {:?}", ranges[i1]);
-                        // println!();
+                        size -= 1;
                         ranges[i2] = None;
-                        break 'outer;
                     } else if contains_start_1 && contains_end_1 {
-                        // println!("a_1");
-                        // println!("{:?}", r1);
-                        // println!("{:?}", r2);
-                        // println!("-> {:?}", ranges[i2]);
-                        // println!();
+                        size -= 1;
                         ranges[i1] = None;
-                        break 'outer;
+                        ranges.swap(i1, i2);
                     } else if contains_start {
-                        // println!("b");
-                        // println!("{:?}", r1);
-                        // println!("{:?}", r2);
-                        // println!("-> {:?}", ranges[i1]);
-                        // println!();
+                        size -= 1;
                         ranges[i1] = Some(RangeInclusive::new(*r1.start(), *r2.end()));
                         ranges[i2] = None;
-                        break 'outer;
                     } else if contains_end {
-                        // println!("c");
-                        // println!("{:?}", r1);
-                        // println!("{:?}", r2);
-                        // println!("-> {:?}", ranges[i1]);
-                        // println!();
+                        size -= 1;
                         ranges[i1] = Some(RangeInclusive::new(*r2.start(), *r1.end()));
                         ranges[i2] = None;
-                        break 'outer;
                     }
                 }
             }
 
-            // println!("{:?}", ranges);
-
-            if size_before == ranges.iter().filter(|e| e.is_some()).count() {
+            if size_before == size {
                 break;
             }
+            size_before = size;
         }
 
-        // println!("{:?}", ranges);
         ranges
             .iter()
             .flatten()
