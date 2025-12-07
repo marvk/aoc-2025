@@ -1,6 +1,5 @@
 use crate::harness::Day;
 use crate::harness::Part;
-use std::mem::swap;
 use std::ops::RangeInclusive;
 
 pub fn day05() -> Day<u64, u64> {
