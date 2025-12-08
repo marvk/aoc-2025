@@ -1,6 +1,5 @@
 use crate::harness::Day;
 use crate::harness::Part;
-use std::cmp::min;
 
 pub fn day06() -> Day<u64, u64> {
     Day::new(6, Box::new(Part1 {}), Box::new(Part2 {}))

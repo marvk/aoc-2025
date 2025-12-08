@@ -1,6 +1,6 @@
 use crate::harness::Day;
 use crate::harness::Part;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Add;
 
 pub fn day08() -> Day<u64, u64> {
