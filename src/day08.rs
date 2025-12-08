@@ -1,5 +1,6 @@
 use crate::harness::Day;
 use crate::harness::Part;
+use std::collections::{HashMap, HashSet};
 use std::ops::Add;
 
 pub fn day08() -> Day<u64, u64> {
@@ -15,75 +16,123 @@ impl Part<u64> for Part1 {
 
     fn solve(&self, input: &[String]) -> u64 {
         let n: usize = if input.len() < 500 { 10 } else { 1000 };
-        let mut input = parse(input);
+        let input = parse(input);
+
         let mut circuits = (0..input.len()).collect::<Vec<_>>();
 
-        for _ in 0..n {
-            let mut min_dist = f32::MAX;
-            let mut min_index = (0, 0);
+        let mut dist = input
+            .iter()
+            .enumerate()
+            .flat_map(|(i1, e1)| {
+                input
+                    .iter()
+                    .enumerate()
+                    .filter(move |&(i2, _)| i2 > i1)
+                    .map(move |(i2, e2)| IdxDist {
+                        i1,
+                        i2,
+                        dist: e1.sq_dist(e2),
+                    })
+            })
+            .collect::<Vec<_>>();
 
-            for i1 in 0..(input.len() - 1) {
-                if input[i1].is_empty() {
-                    continue;
-                }
+        dist.sort_by(|a, b| (a.dist).partial_cmp(&b.dist).unwrap());
 
-                for i2 in (i1 + 1)..input.len() {
-                    if input[i2].is_empty() {
-                        continue;
-                    }
+        for IdxDist { i1, i2, .. } in dist.into_iter().take(n) {
+            let min_index = (circuits[i1], circuits[i2]);
 
-                    let dist = dist(&input[i1], &input[i2]);
-
-                    if dist < min_dist {
-                        // println!("{:?}", input[i1]);
-                        // println!("{:?}", input[i2]);
-                        // println!("{}", dist);
-                        min_index = (i1, i2);
-                        min_dist = dist;
-                    }
+            for i in 0..circuits.len() {
+                if circuits[i] == min_index.1 {
+                    circuits[i] = min_index.0;
                 }
             }
-
-            println!(
-                "merging {:?} and {:?}",
-                input[min_index.0], input[min_index.1]
-            );
-
-            let mut temp = vec![];
-            temp.append(&mut input[min_index.1]);
-            input[min_index.0].append(&mut temp);
         }
 
-        println!();
-        println!();
-        println!();
-        println!();
-
-        let mut vec1 = input.into_iter().map(|e| e.len()).collect::<Vec<_>>();
+        let mut vec1 = circuits
+            .into_iter()
+            .fold(HashMap::new(), |mut acc, e| {
+                *acc.entry(e).or_insert(0) += 1;
+                acc
+            })
+            .into_values()
+            .collect::<Vec<_>>();
         vec1.sort();
 
-        println!("{:?}", vec1);
         vec1.into_iter().rev().take(3).product::<usize>() as u64
     }
+}
+
+struct IdxDist {
+    i1: usize,
+    i2: usize,
+    dist: f64,
 }
 
 pub struct Part2;
 
 impl Part<u64> for Part2 {
     fn expect_test(&self) -> u64 {
-        todo!()
+        25272
     }
 
     fn solve(&self, input: &[String]) -> u64 {
-        todo!()
+        let n: usize = if input.len() < 500 { 10 } else { 1000 };
+        println!("{}", n);
+        let mut input = parse(input);
+        let mut circuits = (0..input.len()).collect::<Vec<_>>();
+
+        let mut min_dist_to_be_considered = 0_f64;
+
+        let mut last_connected = (0, 0);
+
+        for _ in 0.. {
+            let mut min_dist = f64::MAX;
+            let mut min_index = (0, 0);
+
+            for i1 in 0..(input.len() - 1) {
+                for i2 in (i1 + 1)..input.len() {
+                    let dist = input[i1].sq_dist(&input[i2]);
+
+                    if dist > min_dist_to_be_considered && dist < min_dist {
+                        min_index = (circuits[i1], circuits[i2]);
+                        min_dist = dist;
+                        last_connected = (i1, i2);
+                    }
+                }
+            }
+
+            for i in 0..circuits.len() {
+                if circuits[i] == min_index.1 {
+                    circuits[i] = min_index.0;
+                }
+            }
+
+            min_dist_to_be_considered = min_dist;
+
+            let map = circuits.iter().fold(HashMap::new(), |mut acc, e| {
+                *acc.entry(e).or_insert(0) += 1;
+                acc
+            });
+
+            if map.len() == 1 {
+                break;
+            }
+        }
+
+        let map = circuits.into_iter().fold(HashMap::new(), |mut acc, e| {
+            *acc.entry(e).or_insert(0) += 1;
+            acc
+        });
+
+        input[last_connected.0].x as u64 * input[last_connected.1].x as u64
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
 struct Vec3 {
-    x: i32,
-    y: i32,
-    z: i32,
+    x: f64,
+    y: f64,
+    z: f64,
 }
 
 fn parse(input: &[String]) -> Vec<Vec3> {
@@ -91,7 +140,7 @@ fn parse(input: &[String]) -> Vec<Vec3> {
         .iter()
         .filter(|e| !e.is_empty())
         .map(|e| {
-            let mut split = e.split(",").map(|e| e.parse::<i32>().unwrap());
+            let mut split = e.split(",").map(|e| e.parse::<f64>().unwrap());
 
             v(
                 split.next().unwrap(),
@@ -103,23 +152,12 @@ fn parse(input: &[String]) -> Vec<Vec3> {
 }
 
 impl Vec3 {
-    fn dist(&self, other: &Vec3) -> f32 {
-        (((self.x - other.x).pow(2) + (self.y - other.y).pow(2) + (self.z - other.z).pow(2)) as f32)
-            .sqrt()
+    fn sq_dist(&self, other: &Vec3) -> f64 {
+        (self.x - other.x).powf(2.0) + (self.y - other.y).powf(2.0) + (self.z - other.z).powf(2.0)
     }
 }
 
-fn dist(a: &[Vec3], b: &[Vec3]) -> f32 {
-    let mut result = f32::MAX;
-    for x in a {
-        for y in b {
-            result = f32::min(result, x.dist(y));
-        }
-    }
-    result
-}
-
-const fn v(x: i32, y: i32, z: i32) -> Vec3 {
+const fn v(x: f64, y: f64, z: f64) -> Vec3 {
     Vec3 { x, y, z }
 }
 
