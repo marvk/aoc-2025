@@ -20,30 +20,13 @@ impl Part<u64> for Part1 {
 
         let mut circuits = (0..input.len()).collect::<Vec<_>>();
 
-        let mut dist = input
-            .iter()
-            .enumerate()
-            .flat_map(|(i1, e1)| {
-                input
-                    .iter()
-                    .enumerate()
-                    .filter(move |&(i2, _)| i2 > i1)
-                    .map(move |(i2, e2)| IdxDist {
-                        i1,
-                        i2,
-                        dist: e1.sq_dist(e2),
-                    })
-            })
-            .collect::<Vec<_>>();
-
-        dist.sort_by(|a, b| (a.dist).partial_cmp(&b.dist).unwrap());
-
-        for IdxDist { i1, i2, .. } in dist.into_iter().take(n) {
+        for IdxDist { i1, i2, .. } in all_dist(&input).into_iter().take(n) {
             let min_index = (circuits[i1], circuits[i2]);
-
-            for i in 0..circuits.len() {
-                if circuits[i] == min_index.1 {
-                    circuits[i] = min_index.0;
+            if min_index.0 != min_index.1 {
+                for i in 0..circuits.len() {
+                    if circuits[i] == min_index.1 {
+                        circuits[i] = min_index.0;
+                    }
                 }
             }
         }
@@ -56,6 +39,7 @@ impl Part<u64> for Part1 {
             })
             .into_values()
             .collect::<Vec<_>>();
+
         vec1.sort();
 
         vec1.into_iter().rev().take(3).product::<usize>() as u64
@@ -76,53 +60,24 @@ impl Part<u64> for Part2 {
     }
 
     fn solve(&self, input: &[String]) -> u64 {
-        let n: usize = if input.len() < 500 { 10 } else { 1000 };
-        println!("{}", n);
-        let mut input = parse(input);
+        let input = parse(input);
+
         let mut circuits = (0..input.len()).collect::<Vec<_>>();
-
-        let mut min_dist_to_be_considered = 0_f64;
-
         let mut last_connected = (0, 0);
 
-        for _ in 0.. {
-            let mut min_dist = f64::MAX;
-            let mut min_index = (0, 0);
+        for IdxDist { i1, i2, .. } in all_dist(&input) {
+            let min_index = (circuits[i1], circuits[i2]);
 
-            for i1 in 0..(input.len() - 1) {
-                for i2 in (i1 + 1)..input.len() {
-                    let dist = input[i1].sq_dist(&input[i2]);
+            if min_index.0 != min_index.1 {
+                last_connected = (i1, i2);
 
-                    if dist > min_dist_to_be_considered && dist < min_dist {
-                        min_index = (circuits[i1], circuits[i2]);
-                        min_dist = dist;
-                        last_connected = (i1, i2);
+                for i in 0..circuits.len() {
+                    if circuits[i] == min_index.1 {
+                        circuits[i] = min_index.0;
                     }
                 }
             }
-
-            for i in 0..circuits.len() {
-                if circuits[i] == min_index.1 {
-                    circuits[i] = min_index.0;
-                }
-            }
-
-            min_dist_to_be_considered = min_dist;
-
-            let map = circuits.iter().fold(HashMap::new(), |mut acc, e| {
-                *acc.entry(e).or_insert(0) += 1;
-                acc
-            });
-
-            if map.len() == 1 {
-                break;
-            }
         }
-
-        let map = circuits.into_iter().fold(HashMap::new(), |mut acc, e| {
-            *acc.entry(e).or_insert(0) += 1;
-            acc
-        });
 
         input[last_connected.0].x as u64 * input[last_connected.1].x as u64
     }
@@ -151,8 +106,28 @@ fn parse(input: &[String]) -> Vec<Vec3> {
         .collect()
 }
 
+fn all_dist(input: &[Vec3]) -> Vec<IdxDist> {
+    let mut result = input
+        .iter()
+        .enumerate()
+        .flat_map(|(i1, e1)| {
+            input
+                .iter()
+                .enumerate()
+                .filter(move |&(i2, _)| i2 > i1)
+                .map(move |(i2, e2)| IdxDist {
+                    i1,
+                    i2,
+                    dist: e1.dist2(e2),
+                })
+        })
+        .collect::<Vec<_>>();
+    result.sort_by(|a, b| (a.dist).partial_cmp(&b.dist).unwrap());
+    result
+}
+
 impl Vec3 {
-    fn sq_dist(&self, other: &Vec3) -> f64 {
+    fn dist2(&self, other: &Vec3) -> f64 {
         (self.x - other.x).powf(2.0) + (self.y - other.y).powf(2.0) + (self.z - other.z).powf(2.0)
     }
 }
